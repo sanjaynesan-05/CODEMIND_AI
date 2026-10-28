@@ -1,0 +1,203 @@
+{
+  "kind": "authored_probe_not_learner_dataset",
+  "exercise_count": 39,
+  "category_difficulty_counts": [
+    {
+      "category": "Arrays & Hashing",
+      "difficulty": "Beginner",
+      "count": 1
+    },
+    {
+      "category": "Arrays & Hashing",
+      "difficulty": "Easy",
+      "count": 2
+    },
+    {
+      "category": "Arrays & Hashing",
+      "difficulty": "Intermediate",
+      "count": 1
+    },
+    {
+      "category": "Arrays & Hashing",
+      "difficulty": "Medium",
+      "count": 1
+    },
+    {
+      "category": "Binary Search",
+      "difficulty": "Easy",
+      "count": 2
+    },
+    {
+      "category": "Binary Search",
+      "difficulty": "Medium",
+      "count": 1
+    },
+    {
+      "category": "CSS Styling",
+      "difficulty": "Beginner",
+      "count": 1
+    },
+    {
+      "category": "Dynamic Programming",
+      "difficulty": "Easy",
+      "count": 1
+    },
+    {
+      "category": "Dynamic Programming",
+      "difficulty": "Medium",
+      "count": 3
+    },
+    {
+      "category": "Graphs",
+      "difficulty": "Easy",
+      "count": 1
+    },
+    {
+      "category": "Graphs",
+      "difficulty": "Medium",
+      "count": 2
+    },
+    {
+      "category": "HTML, CSS & JavaScript",
+      "difficulty": "Beginner",
+      "count": 2
+    },
+    {
+      "category": "Input & Arithmetic",
+      "difficulty": "Beginner",
+      "count": 2
+    },
+    {
+      "category": "JavaScript Interaction",
+      "difficulty": "Beginner",
+      "count": 2
+    },
+    {
+      "category": "Loops and Accumulation",
+      "difficulty": "Beginner",
+      "count": 2
+    },
+    {
+      "category": "Math & Logic",
+      "difficulty": "Beginner",
+      "count": 2
+    },
+    {
+      "category": "Recursion & DP",
+      "difficulty": "Intermediate",
+      "count": 2
+    },
+    {
+      "category": "Responsive Design",
+      "difficulty": "Beginner",
+      "count": 1
+    },
+    {
+      "category": "Sliding Window",
+      "difficulty": "Easy",
+      "count": 1
+    },
+    {
+      "category": "Sliding Window",
+      "difficulty": "Medium",
+      "count": 2
+    },
+    {
+      "category": "Stack",
+      "difficulty": "Easy",
+      "count": 1
+    },
+    {
+      "category": "Stack",
+      "difficulty": "Medium",
+      "count": 1
+    },
+    {
+      "category": "Strings",
+      "difficulty": "Beginner",
+      "count": 2
+    },
+    {
+      "category": "Two Pointers",
+      "difficulty": "Easy",
+      "count": 2
+    },
+    {
+      "category": "Two Pointers",
+      "difficulty": "Medium",
+      "count": 1
+    }
+  ],
+  "scenarios": [
+    {
+      "label": "passed",
+      "exercise_id": "sum-list",
+      "diagnosis": "All checks passed",
+      "category": "Loops and Accumulation",
+      "confidence": 1.0,
+      "evidence": [
+        "The solution produced the expected output for all 1 test cases."
+      ]
+    },
+    {
+      "label": "missing_return",
+      "exercise_id": "sum-list",
+      "diagnosis": "Some expected output did not match",
+      "category": "Loops and Accumulation",
+      "confidence": 0.78,
+      "evidence": [
+        "1 of 1 test cases failed.",
+        "Example expected 3, received None."
+      ]
+    },
+    {
+      "label": "loop_boundary",
+      "exercise_id": "fibonacci",
+      "diagnosis": "Some expected output did not match",
+      "category": "Recursion & DP",
+      "confidence": 0.78,
+      "evidence": [
+        "1 of 1 test cases failed.",
+        "Example expected 3, received 2."
+      ]
+    },
+    {
+      "label": "wrong_output",
+      "exercise_id": "is-even",
+      "diagnosis": "Some expected output did not match",
+      "category": "Math & Logic",
+      "confidence": 0.78,
+      "evidence": [
+        "1 of 1 test cases failed.",
+        "Example expected True, received False."
+      ]
+    },
+    {
+      "label": "syntax_error",
+      "exercise_id": "sum-list",
+      "diagnosis": "There is a syntax issue",
+      "category": "Syntax and structure",
+      "confidence": 0.99,
+      "evidence": [
+        "invalid syntax"
+      ]
+    },
+    {
+      "label": "runtime_error",
+      "exercise_id": "find-largest",
+      "diagnosis": "A list index may be outside its bounds",
+      "category": "Arrays & Hashing",
+      "confidence": 0.95,
+      "evidence": [
+        "IndexError: list index out of range"
+      ]
+    }
+  ],
+  "diagnosis_title_counts": {
+    "All checks passed": 1,
+    "Some expected output did not match": 3,
+    "There is a syntax issue": 1,
+    "A list index may be outside its bounds": 1
+  },
+  "note": "No accuracy/precision/recall/F1 is reported: labels describe scenario types while the tutor emits free-form diagnostic titles, so a valid mapping requires expert adjudication and a larger held-out set."
+}

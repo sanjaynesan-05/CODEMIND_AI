@@ -22,5 +22,19 @@ services:
       dockerfile: Dockerfile.runner
     profiles: ["build-only"]
 
+  java-runner:
+    image: codemind-java-runner:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.runner-java
+    profiles: ["build-only"]
+
+  c-runner:
+    image: codemind-c-runner:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.runner-c
+    profiles: ["build-only"]
+
 volumes:
   postgres_data:

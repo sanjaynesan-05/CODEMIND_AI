@@ -95,4 +95,105 @@ EXERCISES = [
         "difficulty": "Intermediate",
         "tags": ["lists", "loops", "conditions"],
     },
+    {
+        "id": "java-sum",
+        "title": "Add two numbers in Java",
+        "description": "Write a Java program in `Main.java` that reads two integers from standard input and prints their sum. Print only the answer.",
+        "starter_code": "import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner input = new Scanner(System.in);\n        // Read two integers and print their sum\n    }\n}\n",
+        "function_name": "",
+        "tests": [
+            {"input": "12 5\n", "expected_output": "17\n"},
+            {"input": "0 -4\n", "expected_output": "-4\n"},
+            {"input": "1000 999\n", "expected_output": "1999\n"},
+        ],
+        "solution": "import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner input = new Scanner(System.in);\n        int first = input.nextInt();\n        int second = input.nextInt();\n        System.out.println(first + second);\n    }\n}",
+        "concept": "Java input and output",
+        "difficulty": "Beginner",
+        "tags": ["java", "stdin", "arithmetic"],
+        "language": "java",
+        "execution_mode": "stdin_stdout",
+        "entry_point": "Main.java",
+    },
+    {
+        "id": "c-square",
+        "title": "Square a number in C",
+        "description": "Write a C program in `main.c` that reads one integer and prints its square followed by a newline.",
+        "starter_code": "#include <stdio.h>\n\nint main(void) {\n    int number;\n    // Read a number, then print its square\n    return 0;\n}\n",
+        "function_name": "",
+        "tests": [
+            {"input": "7\n", "expected_output": "49\n"},
+            {"input": "0\n", "expected_output": "0\n"},
+            {"input": "-3\n", "expected_output": "9\n"},
+        ],
+        "solution": "#include <stdio.h>\n\nint main(void) {\n    int number;\n    if (scanf(\"%d\", &number) != 1) return 1;\n    printf(\"%d\\n\", number * number);\n    return 0;\n}",
+        "concept": "C input and arithmetic",
+        "difficulty": "Beginner",
+        "tags": ["c", "stdin", "arithmetic"],
+        "language": "c",
+        "execution_mode": "stdin_stdout",
+        "entry_point": "main.c",
+    },
+    {
+        "id": "web-profile",
+        "title": "Build an interactive profile card",
+        "description": "Use `index.html`, `style.css`, and `script.js` to finish a small profile card. Add a rounded card style and make the greeting button show `Hello, CodeMind!` in the message area.",
+        "starter_code": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Profile card</title>\n</head>\n<body>\n  <main class=\"profile-card\">\n    <p class=\"eyebrow\">HELLO, I AM</p>\n    <h1>CodeMind</h1>\n    <p>Learning to build for the web.</p>\n    <button id=\"greet-button\" type=\"button\">Say hello</button>\n    <p id=\"greeting\" aria-live=\"polite\"></p>\n  </main>\n</body>\n</html>\n",
+        "function_name": "",
+        "tests": [
+            {"id": "card", "label": "A profile card is present", "type": "selector-exists", "selector": ".profile-card"},
+            {"id": "heading", "label": "The page has a CodeMind heading", "type": "text-includes", "selector": "h1", "value": "CodeMind"},
+            {"id": "rounded", "label": "The card has rounded corners", "type": "style-not-default", "selector": ".profile-card", "property": "borderRadius"},
+            {"id": "greeting", "label": "The greeting button updates the message", "type": "click-changes", "button": "#greet-button", "target": "#greeting", "expected": "Hello, CodeMind!"},
+        ],
+        "solution": "/* style.css */\nbody { font-family: sans-serif; background: #f3f1ff; padding: 3rem; }\n.profile-card { max-width: 24rem; margin: auto; padding: 2rem; border-radius: 1.25rem; background: white; box-shadow: 0 1rem 2.5rem #32286622; }\nbutton { padding: .7rem 1rem; border: 0; border-radius: .5rem; background: #7259df; color: white; cursor: pointer; }\n\n// script.js\ndocument.querySelector('#greet-button').addEventListener('click', () => {\n  document.querySelector('#greeting').textContent = 'Hello, CodeMind!';\n});",
+        "concept": "Web structure and interaction",
+        "category": "HTML, CSS & JavaScript",
+        "difficulty": "Beginner",
+        "tags": ["html", "css", "javascript", "dom"],
+        "language": "web",
+        "execution_mode": "browser",
+        "entry_point": "index.html",
+        "starter_files": {
+            "index.html": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Profile card</title>\n</head>\n<body>\n  <main class=\"profile-card\">\n    <p class=\"eyebrow\">HELLO, I AM</p>\n    <h1>CodeMind</h1>\n    <p>Learning to build for the web.</p>\n    <button id=\"greet-button\" type=\"button\">Say hello</button>\n    <p id=\"greeting\" aria-live=\"polite\"></p>\n  </main>\n</body>\n</html>\n",
+            "style.css": "/* Style the card, page background, and button. */\n",
+            "script.js": "// Add a click handler that updates #greeting.\n",
+        },
+    },
 ]
+
+from .dsa_catalog import DSA_EXERCISES
+from .extended_dsa import EXTRA_DSA_EXERCISES
+from .multilang_fundamentals import build_additional_exercises, upgrade_exercise
+from .ui_catalog import UI_EXERCISES
+
+EXERCISES.extend(DSA_EXERCISES)
+EXERCISES.extend(EXTRA_DSA_EXERCISES)
+EXERCISES.extend(build_additional_exercises())
+EXERCISES.extend(UI_EXERCISES)
+EXERCISES[:] = [upgrade_exercise(exercise) for exercise in EXERCISES]
+EXERCISES.append({
+    "id": "web-counter",
+    "title": "Build an interactive counter",
+    "description": "Create a counter card with HTML, style it with CSS, and make the button increase the displayed number by one each time it is clicked.",
+    "starter_code": "",
+    "function_name": "",
+    "tests": [
+        {"id": "counter-card", "label": "A counter card is present", "type": "selector-exists", "selector": ".counter-card"},
+        {"id": "counter-title", "label": "The page has a Counter heading", "type": "text-includes", "selector": "h1", "value": "Counter"},
+        {"id": "counter-style", "label": "The counter card has rounded corners", "type": "style-not-default", "selector": ".counter-card", "property": "borderRadius"},
+        {"id": "counter-click", "label": "Clicking the button increments the count", "type": "click-changes", "button": "#increment", "target": "#count", "expected": "1"},
+    ],
+    "solution": "/* style.css */\nbody { margin: 0; padding: 2rem; display: grid; place-items: center; min-height: 100vh; font-family: system-ui, sans-serif; background: #f4f2ff; }\n.counter-card { width: min(100%, 24rem); padding: 2rem; border-radius: 1.25rem; background: white; text-align: center; box-shadow: 0 12px 36px #21164a1c; }\n#count { color: #7059de; font-size: 3rem; font-weight: 700; }\nbutton { padding: .75rem 1rem; border: 0; border-radius: .5rem; background: #7059de; color: white; cursor: pointer; }\n\n// script.js\nlet count = 0;\ndocument.querySelector('#increment').addEventListener('click', () => {\n  count += 1;\n  document.querySelector('#count').textContent = String(count);\n});",
+    "concept": "Web structure and interaction",
+    "difficulty": "Beginner",
+    "tags": ["html", "css", "javascript", "dom", "events"],
+    "category": "HTML, CSS & JavaScript",
+    "language": "web",
+    "execution_mode": "browser",
+    "entry_point": "index.html",
+    "starter_files": {
+        "index.html": "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Counter</title>\n</head>\n<body>\n  <main class=\"counter-card\">\n    <h1>Counter</h1>\n    <p id=\"count\" aria-live=\"polite\">0</p>\n    <button id=\"increment\" type=\"button\">Add one</button>\n  </main>\n</body>\n</html>\n",
+        "style.css": "/* Style the page and counter card. */\n",
+        "script.js": "// Make #increment increase #count by one.\n",
+    },
+})

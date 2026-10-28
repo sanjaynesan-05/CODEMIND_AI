@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timezone
 
@@ -10,14 +11,14 @@ from sqlalchemy.orm import Session
 load_dotenv()
 
 from .catalog import EXERCISES
-from .db import Base, SessionLocal, engine
+from .db import Base, SessionLocal, engine, migrate_schema
 from .models import Exercise, Mastery, Submission
-from .runner import RunnerUnavailable, execute
+from .runner import RunnerUnavailable, execute, execute_stdio
 from .schemas import HintRequest, SubmissionRequest
 from .tutor import PREREQUISITES, diagnose, next_hint, update_bkt
 
 
-app = FastAPI(title="CodeMind AI", version="1.0.0", description="An evidence-based adaptive tutor for Python programming.")
+app = FastAPI(title="CodeMind AI", version="1.0.0", description="A local coding practice workspace for Python, Java, C, HTML, CSS, and JavaScript.")
 origins = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
@@ -30,7 +31,7 @@ def get_db():
         db.close()
 
 
-def exercise_dict(exercise: Exercise, include_solution: bool = False) -> dict:
+def exercise_dict(exercise: Exercise, include_solution: bool = False, language: str | None = None) -> dict:
     result = {
         "id": exercise.id,
         "title": exercise.title,
@@ -38,12 +39,23 @@ def exercise_dict(exercise: Exercise, include_solution: bool = False) -> dict:
         "starter_code": exercise.starter_code,
         "function_name": exercise.function_name,
         "concept": exercise.concept,
+        "category": exercise.category or exercise.concept,
         "difficulty": exercise.difficulty,
         "tags": exercise.tags,
+        "language": exercise.language or "python",
+        "execution_mode": exercise.execution_mode or "function",
+        "entry_point": exercise.entry_point or "solution.py",
+        "starter_files": exercise.starter_files,
+        "language_starters": exercise.language_starters,
+        "languages": list((exercise.language_starters or {}).keys()) if exercise.language == "multi" else [exercise.language or "python"],
+        "examples": exercise.examples or [],
+        "constraints": exercise.constraints or [],
         "test_count": len(exercise.tests),
     }
+    if exercise.execution_mode == "browser":
+        result["tests"] = exercise.tests
     if include_solution:
-        result["solution"] = exercise.solution
+        result["solution"] = (exercise.language_solutions or {}).get(language or exercise.language, exercise.solution)
     return result
 
 
@@ -51,6 +63,8 @@ def attempt_dict(attempt: Submission) -> dict:
     return {
         "id": attempt.id,
         "exercise_id": attempt.exercise_id,
+        "files": attempt.files,
+        "language": attempt.language,
         "passed": attempt.passed,
         "status": attempt.status,
         "diagnosis": attempt.diagnosis,
@@ -64,10 +78,18 @@ def attempt_dict(attempt: Submission) -> dict:
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    migrate_schema()
     with SessionLocal() as db:
         for record in EXERCISES:
-            if db.get(Exercise, record["id"]) is None:
+            exercise = db.get(Exercise, record["id"])
+            if exercise is None:
                 db.add(Exercise(**record))
+            else:
+                # Keep previously seeded local exercises in step with catalog
+                # changes while leaving their saved submissions and mastery intact.
+                for key, value in record.items():
+                    if key != "id" and hasattr(exercise, key):
+                        setattr(exercise, key, value)
         db.commit()
 
 
@@ -95,10 +117,46 @@ def submit(request: SubmissionRequest, db: Session = Depends(get_db)):
     exercise = db.get(Exercise, request.exercise_id)
     if exercise is None:
         raise HTTPException(404, "Exercise not found")
-    try:
-        run = execute(request.code, exercise.function_name, exercise.tests)
-    except RunnerUnavailable as error:
-        raise HTTPException(503, str(error)) from error
+    submitted_files = request.files
+    stored_code = request.code
+    language = request.language or exercise.language or "python"
+    if exercise.execution_mode == "multi_language_stdio":
+        if language not in (exercise.language_starters or {}):
+            raise HTTPException(422, "Choose C, Python, or Java for this problem.")
+    elif language != (exercise.language or "python"):
+        raise HTTPException(422, "That language is not enabled for this exercise.")
+    if exercise.execution_mode == "browser":
+        if not submitted_files:
+            raise HTTPException(422, "Web exercises require index.html, style.css, and script.js files.")
+        allowed_files = {"index.html", "style.css", "script.js"}
+        if set(submitted_files) - allowed_files:
+            raise HTTPException(422, "Web exercise files must be named index.html, style.css, or script.js.")
+        if any(not isinstance(value, str) for value in submitted_files.values()):
+            raise HTTPException(422, "Web exercise files must contain text.")
+        if sum(len(value.encode("utf-8")) for value in submitted_files.values()) > int(os.getenv("MAX_SOURCE_BYTES", "20000")):
+            raise HTTPException(413, "Your project is too large.")
+        if request.test_results is None or len(request.test_results) != len(exercise.tests):
+            raise HTTPException(422, "Run all browser checks before submitting this web exercise.")
+        web_results = []
+        for expected_test, received in zip(exercise.tests, request.test_results):
+            if not isinstance(received.get("passed"), bool):
+                raise HTTPException(422, "Each browser check must include a boolean passed value.")
+            web_results.append({**received, "label": expected_test.get("label", "Browser check")})
+        stored_code = json.dumps(submitted_files, ensure_ascii=False)
+        run = {"status": "completed", "tests": web_results, "duration_ms": 0, "message": "Browser checks completed."}
+    else:
+        if not request.code.strip():
+            raise HTTPException(422, "Enter code before submitting.")
+        try:
+            if exercise.execution_mode == "multi_language_stdio":
+                entry_point = {"c": "main.c", "python": "main.py", "java": "Main.java"}[language]
+                run = execute_stdio(language, request.code, entry_point, exercise.tests)
+            elif exercise.execution_mode == "stdin_stdout":
+                run = execute_stdio(language, request.code, exercise.entry_point, exercise.tests)
+            else:
+                run = execute(request.code, exercise.function_name, exercise.tests)
+        except RunnerUnavailable as error:
+            raise HTTPException(503, str(error)) from error
     diagnosis = diagnose(exercise_dict(exercise), request.code, run)
     prior_failures = db.scalars(
         select(Submission)
@@ -113,7 +171,9 @@ def submit(request: SubmissionRequest, db: Session = Depends(get_db)):
     passed = run["status"] == "completed" and bool(run["tests"]) and all(test.get("passed") for test in run["tests"])
     attempt = Submission(
         exercise_id=exercise.id,
-        code=request.code,
+        code=stored_code,
+        language=language,
+        files=submitted_files if exercise.execution_mode == "browser" else None,
         passed=passed,
         status=run["status"],
         diagnosis=diagnosis,
@@ -155,7 +215,8 @@ def get_hint(attempt_id: int, request: HintRequest, db: Session = Depends(get_db
         raise HTTPException(404, "Attempt not found")
     exercise = db.get(Exercise, attempt.exercise_id)
     if request.reveal_solution:
-        hint = next_hint(exercise.concept, attempt.hint_level, solution=exercise.solution)
+        solution = (exercise.language_solutions or {}).get(request.language or attempt.language, exercise.solution)
+        hint = next_hint(exercise.concept, attempt.hint_level, solution=solution)
     else:
         hint = next_hint(exercise.concept, attempt.hint_level)
         attempt.hint_level = max(attempt.hint_level, hint["level"])

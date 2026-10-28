@@ -10,6 +10,21 @@ PREREQUISITES = {
     "Recursion and base cases": [],
     "Loops and sequences": ["Conditions and loops"],
     "Lists and membership": ["Conditions and loops"],
+    "Java input and output": [],
+    "C input and arithmetic": [],
+    "Web structure and interaction": [],
+    "Arrays & Hashing": [],
+    "Two Pointers": ["Arrays & Hashing"],
+    "Stack": [],
+    "Binary Search": ["Arrays & Hashing"],
+    "Sliding Window": ["Arrays & Hashing", "Two Pointers"],
+    "Dynamic Programming": ["Arrays & Hashing"],
+    "Graphs": [],
+    "Loops and Accumulation": [],
+    "Strings": [],
+    "Math & Logic": [],
+    "Recursion & DP": [],
+    "Input & Arithmetic": [],
 }
 
 HINTS = {
@@ -45,6 +60,18 @@ HINTS = {
         "How can you tell whether you have already added an item to your result list?",
         "Check membership before appending so the first occurrence keeps its position.",
     ],
+    "Java input and output": [
+        "What values arrive through standard input, and which Scanner method reads each integer?",
+        "Read the two integers into variables, add them, and print only the sum.",
+    ],
+    "C input and arithmetic": [
+        "Which standard-library function reads an integer from standard input?",
+        "Use `scanf` with the address of the integer variable, then print the value multiplied by itself.",
+    ],
+    "Web structure and interaction": [
+        "Which file should define the card's appearance, and which file should respond to the button click?",
+        "Select the button and message by their IDs, then update the message element's `textContent` in a click handler.",
+    ],
 }
 
 
@@ -68,7 +95,21 @@ def diagnose(exercise: dict, code: str, run: dict) -> dict:
     total = len(run.get("tests", []))
     facts = code_facts(code)
     category = exercise["concept"]
-    if run["status"] == "syntax_error":
+    if exercise.get("execution_mode") == "browser" and run["status"] == "completed":
+        if total and not failed:
+            title = "All browser checks passed"
+            evidence = [f"The preview passed all {total} browser checks."]
+            confidence = 0.95
+        elif total:
+            title = "Some browser checks need attention"
+            evidence = [f"{len(failed)} of {total} browser checks failed."]
+            evidence.extend(result.get("label") or result.get("message") or "Review this browser check." for result in failed[:4])
+            confidence = 0.78
+        else:
+            title = "No browser checks were returned"
+            evidence = ["Run the browser checks from the preview before submitting."]
+            confidence = 0.9
+    elif run["status"] == "syntax_error":
         title = "There is a syntax issue"
         evidence = [run["message"]]
         confidence = 0.99
@@ -82,6 +123,21 @@ def diagnose(exercise: dict, code: str, run: dict) -> dict:
         title = "A list index may be outside its bounds" if "IndexError" in message else "The program stopped with a runtime error"
         evidence = [message]
         confidence = 0.95
+    elif run["status"] == "compile_error":
+        title = "The program did not compile"
+        evidence = [run.get("message", "Review the compiler output.")]
+        confidence = 0.98
+    elif exercise.get("execution_mode") in {"stdin_stdout", "multi_language_stdio"} and run["status"] == "completed":
+        if total and not failed:
+            title = "All checks passed"
+            evidence = [f"The solution produced the expected output for all {total} test cases."]
+            confidence = 1.0
+        else:
+            title = "Some expected output did not match"
+            evidence = [f"{len(failed)} of {total} test cases failed."]
+            if failed:
+                evidence.append(f"Example expected {failed[0].get('expected')!r}, received {failed[0].get('actual')!r}.")
+            confidence = 0.78
     elif run["status"] == "rejected":
         title = "This submission could not be checked"
         evidence = [run.get("message", "The submission did not meet the runner's limits.")]

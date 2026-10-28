@@ -1,8 +1,8 @@
-# CodeMind AI
+# Code Matrix
 
-CodeMind AI is a learning workspace for Python practice. It checks submissions against exercise tests, gives evidence-based feedback and progressive hints, saves attempts, estimates concept mastery, and chooses an exercise to try next.
+Code Matrix is a local coding practice workspace for Python, Java, C, HTML, CSS, and JavaScript. It checks submissions against exercise criteria, gives feedback and progressive hints, saves attempts, estimates concept mastery, and recommends what to try next.
 
-This repository is a complete local prototype. The learning model and diagnosis rules are inspectable heuristics, not evidence of educational effectiveness. It currently uses a single local learner profile and does not include account management or classroom administration.
+This repository is a complete local prototype. The learning model and diagnosis rules are inspectable heuristics, not evidence of educational effectiveness. It currently uses a single local learner profile and does not include account management or classroom administration. The source folder and internal database/runner identifiers may retain the legacy `codemind` name for compatibility; the product name shown to users is Code Matrix.
 
 ## Contents
 
@@ -21,23 +21,28 @@ This repository is a complete local prototype. The learning model and diagnosis 
 
 - React + TypeScript dashboard and practice studio with Monaco Editor.
 - FastAPI API for exercises, submissions, hints, attempt history, mastery estimates, progress, and recommendations.
-- Eight starter Python exercises with deterministic checks and difficulty levels.
+- 33 console coding problems, including 21 categorized DSA questions and programming fundamentals. Every console problem can be solved in C, Python, or Java, with separate saved drafts and the same judge cases across languages.
+- Problem categories include Arrays & Hashing, Two Pointers, Stack, Binary Search, Sliding Window, Dynamic Programming, Graphs, Strings, Math & Logic, Recursion & DP, Input & Arithmetic, and Loops and Accumulation. Each category has multiple exercises.
+- Six multi-file HTML/CSS/JavaScript projects live in a separate UI Studio, with a live preview and browser checks. Code Studio contains only C/Python/Java console exercises.
+- Separate Python, Java, and C compiler/runtime images; choose the language from the editor on every console problem. Each studio has its own category-filtered problem list.
 - AST-based structural observations and explainable diagnosis rules. Diagnoses are possibilities, not claims about student intent.
 - Progressive conceptual and structural hints; a worked solution is returned only on explicit request.
 - BKT-style per-concept estimates and concept prerequisite foundations.
 - PostgreSQL for Docker Compose and SQLite for simple local API development.
-- A disposable Docker execution container with no network, read-only root filesystem, CPU, memory, process, and time limits, and a read-only submission mount. Student code never runs in the FastAPI process.
+- Disposable Docker execution containers for Python, Java, and C with no network, read-only root filesystems, CPU, memory, process, and time limits, and read-only submission mounts. Student code never runs in the FastAPI process.
+- A browser preview inside an iframe sandbox with a restrictive Content Security Policy. Browser checks run in that frame and are useful for local practice feedback.
 
 ## Technology stack
 
 | Area | Technology | Role |
 |---|---|---|
 | Web application | React, TypeScript, Vite | Dashboard, practice flow, progress, and history views |
-| Code editor | Monaco Editor | Python editing with syntax highlighting and editor conveniences |
+| Code editor | Monaco Editor | Python, Java, C, HTML, CSS, and JavaScript editing |
 | UI icons and styles | Lucide React, CSS | Interface icons and responsive layout |
 | API | Python 3.11+, FastAPI, Pydantic | HTTP API, request validation, and orchestration |
 | Code inspection | Python `ast` | Structural facts that support diagnosis rules |
-| Code execution | Docker runner image | Isolated execution and test evaluation |
+| Code execution | Docker runner images | Isolated Python, Java, and C compilation/execution |
+| Web preview | Sandboxed browser iframe | Multi-file HTML/CSS/JavaScript preview and client-side checks |
 | Persistence | SQLite or PostgreSQL | Exercises, submissions, test results, and mastery estimates |
 | Data access | SQLAlchemy | Database models and queries |
 
@@ -49,10 +54,15 @@ Frontend dependency versions are recorded in `package-lock.json`; backend depend
 CODEMIND_AI/
 ├── backend/
 │   ├── catalog.py       # Seed exercises and expected test cases
+│   ├── dsa_catalog.py   # Shared categorized DSA problems and language starters/solutions
+│   ├── extended_dsa.py  # Additional problems across the DSA categories
+│   ├── multilang_fundamentals.py # Shared C/Python/Java fundamentals and console exercises
+│   ├── ui_catalog.py    # HTML/CSS/JavaScript practice projects and browser checks
 │   ├── db.py            # SQLite/PostgreSQL connection setup
 │   ├── main.py          # FastAPI routes and startup
 │   ├── models.py        # Exercise, submission, and mastery tables
-│   ├── runner.py        # Docker invocation and bounded output handling
+│   ├── runner.py        # Docker invocation for Python, Java, and C
+│   ├── stdio_runner.py  # Python/Java/C compiler and stdin/stdout test harness
 │   ├── schemas.py       # Validated API request models
 │   └── tutor.py         # AST facts, diagnoses, hints, and BKT updates
 ├── src/
@@ -62,7 +72,9 @@ CODEMIND_AI/
 │   ├── main.tsx         # React entry point
 │   └── vite-env.d.ts    # Vite TypeScript definitions
 ├── Dockerfile.runner    # Disposable Python execution image
-├── docker-compose.yml   # Optional PostgreSQL and runner-image build target
+├── Dockerfile.runner-java # Java compiler/runtime image
+├── Dockerfile.runner-c  # C compiler/runtime image
+├── docker-compose.yml   # Optional PostgreSQL and runner-image build targets
 ├── .env.example         # Local environment defaults
 ├── package.json         # Frontend scripts and dependencies
 ├── package-lock.json    # Reproducible frontend dependency tree
@@ -81,10 +93,10 @@ Requirements: Python 3.11+, Node.js 22.12+ (or Node.js 20.19+), npm, and Docker 
    if (!(Test-Path .env)) { Copy-Item .env.example .env }
    ```
 
-2. Build the runner image:
+2. Build all language runner images (the first build downloads base images and compilers and may take a few minutes):
 
    ```powershell
-   docker compose --profile build-only build runner-image
+   docker compose --profile build-only build runner-image java-runner c-runner
    ```
 
    PostgreSQL is optional. If you want PostgreSQL instead of the default SQLite database, start the Compose database too:
@@ -121,38 +133,25 @@ To stop PostgreSQL, run `docker compose down`. To erase its data too, run `docke
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  Browser[React + TypeScript + Monaco] -->|REST /api| API[FastAPI]
-  API --> AST[AST checks + diagnosis rules]
-  API --> Runner[Disposable Docker runner]
-  Runner --> Evaluation[Test-case evaluator]
-  AST --> Diagnosis[Evidence-backed diagnosis]
-  Evaluation --> Diagnosis
-  Diagnosis --> Hints[Progressive hint selector]
-  API --> DB[(PostgreSQL / SQLite)]
-  Diagnosis --> DB
-  DB --> BKT[BKT-style mastery estimate]
-  BKT --> Recommender[Exercise recommender]
-  Recommender --> Browser
-```
+![Intelligent Coding Tutor Architecture Flowchart](assets\architecture.png)
+
 
 The explanation service uses deterministic, evidence-backed templates. This keeps the prototype useful without an LLM key and avoids delegating correctness decisions to a language model. An LLM can be added later as a phrasing layer grounded in diagnoses and trusted teaching material.
 
 ### Submission flow
 
-1. The student opens an exercise and edits the starter code in Monaco.
-2. The frontend sends the exercise ID and code to `POST /api/submissions`.
-3. The API enforces source limits and parses syntax, then creates a temporary runner script.
-4. Docker runs the script with no network, a read-only root filesystem, capped CPU/memory/processes, a temporary directory, and a time limit.
-5. The runner invokes the exercise function on the catalog's test inputs and returns per-test outcomes.
-6. The tutor combines the test outcome with AST facts and exercise context to produce a likely diagnosis and supporting evidence.
+1. The student opens an exercise and edits the relevant source file(s) in Monaco.
+2. Code Studio sends the exercise ID, selected C/Python/Java language, and code to `POST /api/submissions`. UI Studio sends its HTML/CSS/JavaScript files and browser-check outcomes.
+3. Console submissions include the selected language and run as stdin/stdout programs against the problem's shared test cases. Java and C submissions are compiled inside their language-specific runner images.
+4. Docker runs Python, Java, or C work in a disposable network-isolated container with a read-only root filesystem, capped CPU/memory/processes, bounded output, and execution time limits.
+5. The runner returns per-test outcomes; the tutor combines them with language-appropriate exercise context and, for Python, AST observations.
+6. UI Studio projects render in an iframe with `sandbox="allow-scripts"` and a restrictive CSP. Browser checks inspect DOM text, selectors, computed styles, and interactions. Results are submitted for learning feedback.
 7. The API stores the attempt and updates the learner's concept estimate.
 8. The recommendation endpoint chooses a suitable exercise and explains its reason.
 
 ### Persistence and learner model
 
-The API creates its tables at startup and seeds catalog exercises that are not already present. The `submissions` table retains the submitted code, execution status, per-test results, diagnosis evidence, duration, and hint level. The `mastery` table stores one estimate and attempt count for each concept. In the browser, unfinished editor code is saved per exercise in `localStorage`.
+The API creates its tables at startup, adds the language/multi-file columns to an existing local database, and synchronizes exercise definitions with the current catalog. Existing submissions and mastery records are retained. The `submissions` table retains the submitted code, chosen language, web files when applicable, execution status, per-test results, diagnosis evidence, duration, and hint level. The `mastery` table stores one estimate and attempt count for each concept. In the browser, unfinished editor code/files are saved per exercise and language in `localStorage`.
 
 Mastery uses a small BKT-style update with an initial probability of `0.25`, learning probability `0.12`, guess probability `0.20`, and slip probability `0.10`. Each submission updates the concept estimate using whether all supplied tests passed. These values are prototype assumptions and are not calibrated to a classroom dataset.
 
@@ -181,7 +180,8 @@ Submit a solution:
 ```json
 {
   "exercise_id": "factorial",
-  "code": "def factorial(n):\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)"
+  "language": "python",
+  "code": "n = int(input())\ndef factorial(n):\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)\nprint(factorial(n))"
 }
 ```
 
@@ -197,12 +197,23 @@ Reveal the worked solution only when the learner explicitly asks:
 { "reveal_solution": true }
 ```
 
-Submission status is one of `completed`, `syntax_error`, `runtime_error`, `timeout`, or `rejected`. If Docker or the runner image is unavailable, the API returns HTTP `503` rather than executing student code in the API process.
+For any console problem, include the selected language as `c`, `python`, or `java`; it is saved with the attempt. Example:
+
+```json
+{
+  "exercise_id": "dsa-two-sum",
+  "language": "java",
+  "code": "import java.util.*;\npublic class Main { public static void main(String[] args) { ... } }"
+}
+```
+
+Submission status can include `completed`, `syntax_error`, `compile_error`, `runtime_error`, `timeout`, or `rejected`. If Docker or the required runner image is unavailable, the API returns HTTP `503` rather than executing student code in the API process. Web check outcomes are produced in the learner's browser; they are not a trusted grading service and should not be used for high-stakes assessment.
 
 ## Safety and prototype limits
 
 - The runner fails closed if Docker cannot be invoked. AST parsing is for analysis, not a security boundary.
 - The API runs on the host and invokes Docker CLI, so it does not need a persistent Docker socket mount in an API container. The runner containers are disposable and network-isolated.
+- Web preview code is untrusted and runs in a sandboxed iframe with network access blocked by CSP. Browser-based test results are client-reported practice feedback. The current web workspace is a static frontend project; it does not provide a user-controlled backend server or database for each web exercise.
 - This local prototype has no user authentication. Add learner-scoped storage and authentication before deployment to multiple people.
 - Tune diagnosis rules and BKT parameters against a documented curriculum and evaluation dataset before drawing conclusions about learner understanding.
 - No benchmark, learning-gain, or user-study results are claimed.
@@ -217,6 +228,8 @@ Copy `.env.example` to `.env` and adjust these settings as needed:
 | `DATABASE_URL` | `sqlite:///./data/codemind.db` | SQLAlchemy database URL. Use PostgreSQL's URL below to switch databases. |
 | `RUNNER_MODE` | `docker` | Must be `docker`; the API fails closed for other values. |
 | `RUNNER_IMAGE` | `codemind-python-runner:latest` | Image built from `Dockerfile.runner`. |
+| `JAVA_RUNNER_IMAGE` | `codemind-java-runner:latest` | Java image built from `Dockerfile.runner-java`. |
+| `C_RUNNER_IMAGE` | `codemind-c-runner:latest` | C image built from `Dockerfile.runner-c`. |
 | `RUNNER_TIMEOUT_SECONDS` | `4` | Per-submission execution time limit. |
 | `MAX_SOURCE_BYTES` | `20000` | Maximum accepted source-code size. |
 | `FRONTEND_ORIGINS` | `http://localhost:5173` | Comma-separated allowed browser origins for API CORS. |
@@ -250,7 +263,7 @@ There is currently no automated test suite in the repository. A successful front
 | Symptom | What to check |
 |---|---|
 | Docker Desktop is not running | Start Docker Desktop and confirm its Linux container engine is running. |
-| Runner image is missing | Run `docker compose --profile build-only build runner-image` from the project root. |
+| Runner image is missing | Run `docker compose --profile build-only build runner-image java-runner c-runner` from the project root. |
 | API returns HTTP 503 for submissions | Check Docker availability and the image name in `.env`. |
 | Frontend cannot reach the API | Start `uvicorn backend.main:app --reload` and open `http://localhost:8000/api/health`. |
 | Port 5173, 8000, or 5432 is busy | Stop the conflicting process or change the development port. |
