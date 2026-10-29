@@ -14,6 +14,8 @@ This repository is a complete local prototype. The learning model and diagnosis 
 - [Configuration](#configuration)
 - [API reference](#api)
 - [Build and checks](#build-and-checks)
+- [Team workflow](#team-workflow)
+- [DevOps deployment](#devops-deployment-render)
 - [Troubleshooting](#troubleshooting)
 - [Security and current limitations](#safety-and-prototype-limits)
 
@@ -257,6 +259,35 @@ python -m compileall backend
 ```
 
 There is currently no automated test suite in the repository. A successful frontend build and Python compilation do not establish diagnosis quality, runner security, or educational effectiveness.
+
+## Team workflow
+
+Follow the branch naming, commit, pull-request, review, and merge process in [CONTRIBUTING.md](CONTRIBUTING.md). Work on a short-lived feature/fix/docs branch, target `main` with a pull request, wait for CI and one teammate's approval, and resolve review threads before merging. Configure GitHub branch protection for `main` to require the `frontend`, `backend`, and `containers` checks and one approval; repository settings cannot be managed by a committed file alone.
+
+## DevOps deployment (Render)
+
+The repository includes a GitHub Actions workflow at `.github/workflows/ci.yml`, production container definitions for the API and frontend, and a Render Blueprint at `render.yaml`. Connect the GitHub repository to Render and create a Blueprint deployment from that file. Review the selected plans and current prices in Render before creating managed services. The Blueprint creates a PostgreSQL database, a private FastAPI service, and a public Nginx frontend; the frontend proxies `/api` to the private API using Render's private host-and-port reference. The database URL is injected by Render, and the API listens on Render's `PORT`.
+
+**Execution limitation:** the local judge starts a new Docker container for every student submission and applies network isolation, read-only filesystems, and resource limits. The Render Blueprint deliberately sets `RUNNER_MODE=unavailable`; execution endpoints fail closed with a clear service error rather than running student code inside the API. Thus the web application can be deployed, but code judging is disabled until a separately hosted isolated runner with an authenticated API is implemented and connected. Do not enable direct execution in the API process or expose a Docker socket to the public web service.
+
+### Local container smoke test
+
+```powershell
+docker build -f Dockerfile.api -t codematrix-api:local .
+docker build -f Dockerfile.web -t codematrix-web:local .
+```
+
+### CI and release flow
+
+Every push or pull request to `main` or `master` runs the frontend production build, npm dependency audit, Python compilation/import check, Python dependency audit, and API/frontend container builds. Configure the repository to require these checks before merging. After merging, Render deploys the connected Blueprint services from the repository. Review Render deployment logs and `/api/health` after each release. The current project does not include a staging environment or automated rollback policy.
+
+### Remaining production work
+
+- Implement and threat-model a separate execution service capable of safely running untrusted Python, Java, and C code. Require authenticated service-to-service requests, quotas, strict resource/time limits, no network access for workloads, and cleanup. Then add a `RUNNER_MODE` integration for that service.
+- Verify the private service reference and frontend hostname in the deployed Render environment.
+- Add a staging environment, end-to-end smoke tests, and a tested rollback procedure.
+- Configure branch protection to require CI checks and review; repository settings are managed on GitHub and are not changed by this file.
+- Complete the rubric's Coursera certification and retain the certificate separately; it is not a software deployment task.
 
 ## Troubleshooting
 

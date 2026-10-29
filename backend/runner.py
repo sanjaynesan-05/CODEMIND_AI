@@ -24,6 +24,13 @@ class RunnerUnavailable(Exception):
     pass
 
 
+def _require_runner():
+    if RUNNER_MODE == "unavailable":
+        raise RunnerUnavailable("Code execution is disabled on this deployment until a separately isolated runner service is configured.")
+    if RUNNER_MODE != "docker":
+        raise RunnerUnavailable("RUNNER_MODE must be docker or unavailable. Student code is never executed in the API process.")
+
+
 def _harness(code: str, function_name: str, tests: list[dict]) -> str:
     payload = json.dumps(tests, ensure_ascii=True)
     return f'''import json, traceback
@@ -101,8 +108,7 @@ def execute(source: str, function_name: str, tests: list[dict]) -> dict:
             "tests": [],
             "duration_ms": 0,
         }
-    if RUNNER_MODE != "docker":
-        raise RunnerUnavailable("RUNNER_MODE must be docker. The API never executes student code in its own process.")
+    _require_runner()
     script = _harness(source, function_name, tests)
     started = time.perf_counter()
     folder = None
@@ -176,6 +182,7 @@ def execute_stdio(language: str, source: str, entry_point: str, tests: list[dict
     """Run one DSA stdin/stdout solution in its language-specific container."""
     if language not in {"python", "java", "c"}:
         raise ValueError("Supported judge languages are C, Python, and Java.")
+    _require_runner()
     if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
         return {"status": "rejected", "message": "Your submission is too large.", "tests": [], "duration_ms": 0}
     expected_entry = {"python": "main.py", "java": "Main.java", "c": "main.c"}[language]

@@ -95,7 +95,7 @@ def startup():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "runner": "isolated-docker"}
+    return {"status": "ok", "runner": os.getenv("RUNNER_MODE", "docker")}
 
 
 @app.get("/api/exercises")
