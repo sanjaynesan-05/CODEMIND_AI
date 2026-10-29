@@ -5,11 +5,12 @@ databases:
     user: codematrix
 
 services:
-  - type: pserv
+  - type: web
     name: codematrix-api
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile.api
+    healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
         value: production
@@ -20,7 +21,7 @@ services:
           name: codematrix-db
           property: connectionString
       - key: FRONTEND_ORIGINS
-        value: "*"
+        value: "http://localhost:5173"
 
   - type: web
     name: codematrix-web
@@ -29,8 +30,10 @@ services:
     dockerfilePath: ./Dockerfile.web
     healthCheckPath: /
     envVars:
-      - key: API_INTERNAL_URL
+      - key: API_PUBLIC_HOSTNAME
         fromService:
-          type: pserv
+          type: web
           name: codematrix-api
-          property: hostport
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: API_SCHEME
+        value: https
