@@ -302,3 +302,5 @@ Every push or pull request to `main` or `master` runs the frontend production bu
 | PowerShell blocks virtual-environment activation | Run `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` and `.\.venv\Scripts\python.exe -m uvicorn backend.main:app --reload` without activating it. |
 
 For interactive route schemas, open [http://localhost:8000/docs](http://localhost:8000/docs) while the API is running.
+
+Welcome to Code Matrix! This is a local coding practice workspace for Python, Java, C, HTML, CSS, and JavaScript. It checks submissions against exercise criteria, gives feedback and progressive hints, saves attempts, estimates concept mastery, and recommends what to try next.
