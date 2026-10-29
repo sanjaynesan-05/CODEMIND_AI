@@ -6,6 +6,12 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/codemind.db")
+# Render provides `postgresql://` URLs, while this project installs psycopg 3
+# (not psycopg2). Select the installed driver explicitly for SQLAlchemy.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL.removeprefix("postgres://")
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL.removeprefix("postgresql://")
 if DATABASE_URL.startswith("sqlite"):
     Path("data").mkdir(exist_ok=True)
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
