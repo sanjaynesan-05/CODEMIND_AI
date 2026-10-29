@@ -228,7 +228,14 @@ Copy `.env.example` to `.env` and adjust these settings as needed:
 |---|---|---|
 | `APP_ENV` | `development` | Environment label; currently informational |
 | `DATABASE_URL` | `sqlite:///./data/codemind.db` | SQLAlchemy database URL. Use PostgreSQL's URL below to switch databases. |
-| `RUNNER_MODE` | `docker` | Must be `docker`; the API fails closed for other values. |
+| `RUNNER_MODE` | `docker` | `docker` for local isolated containers, `judge0` for the configured isolated Judge0 service, or `unavailable` to disable judging. The API never runs student code in its own process. |
+| `JUDGE0_URL` | unset | HTTPS base URL for an isolated Judge0 CE instance. Required for `RUNNER_MODE=judge0`. |
+| `JUDGE0_API_KEY` | unset | Optional provider key. For a RapidAPI endpoint, pair with `JUDGE0_RAPIDAPI_HOST`; for an authenticated CE instance, used as the `X-Auth-Token`. |
+| `JUDGE0_RAPIDAPI_HOST` | unset | RapidAPI host header, for example `judge0-ce.p.rapidapi.com`. |
+| `JUDGE0_AUTH_TOKEN` | unset | Optional self-hosted Judge0 `X-Auth-Token`; prefer this over `JUDGE0_API_KEY` for a self-hosted instance. |
+| `JUDGE0_PYTHON_LANGUAGE_ID` | `100` | Judge0 language ID for Python 3.12.5. |
+| `JUDGE0_JAVA_LANGUAGE_ID` | `91` | Judge0 language ID for Java JDK 17. |
+| `JUDGE0_C_LANGUAGE_ID` | `103` | Judge0 language ID for C GCC 14.1.0. |
 | `RUNNER_IMAGE` | `codemind-python-runner:latest` | Image built from `Dockerfile.runner`. |
 | `JAVA_RUNNER_IMAGE` | `codemind-java-runner:latest` | Java image built from `Dockerfile.runner-java`. |
 | `C_RUNNER_IMAGE` | `codemind-c-runner:latest` | C image built from `Dockerfile.runner-c`. |
@@ -243,6 +250,21 @@ DATABASE_URL=postgresql+psycopg://codemind:codemind-local@localhost:5432/codemin
 ```
 
 The Compose database password defaults to `codemind-local` for local development. Change it before using the database outside a local machine.
+
+### Enable isolated submissions on Render
+
+Render's standard web service does not provide the Docker daemon used by the local runner. The optional `judge0` mode submits source and test cases to an isolated Judge0 CE service over HTTPS and polls its sandboxed results. Judge0 documents isolated execution and batch submissions in its [official API docs](https://ce.judge0.com/). Its hosted RapidAPI endpoint may require an account/key; self-hosting Judge0 requires separate infrastructure. Review the provider's terms, privacy, limits, and pricing before sending learner source code.
+
+After merging the runner adapter, configure these API service environment variables in Render:
+
+```text
+RUNNER_MODE=judge0
+JUDGE0_URL=https://your-approved-judge0-endpoint
+JUDGE0_API_KEY=<secret>
+JUDGE0_RAPIDAPI_HOST=<required only for RapidAPI>
+```
+
+For a self-hosted Judge0 CE that uses `X-Auth-Token`, set `JUDGE0_AUTH_TOKEN` instead of the RapidAPI key/host. Keep credentials in Render's secret environment-variable settings, never in Git. Confirm the endpoint's language IDs match the configured IDs. If any required setting is missing or the service cannot be reached, the API returns 503 and does not fall back to running code locally.
 
 ## Build and checks
 

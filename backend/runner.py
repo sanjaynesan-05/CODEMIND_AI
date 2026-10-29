@@ -27,8 +27,8 @@ class RunnerUnavailable(Exception):
 def _require_runner():
     if RUNNER_MODE == "unavailable":
         raise RunnerUnavailable("Code execution is disabled on this deployment until a separately isolated runner service is configured.")
-    if RUNNER_MODE != "docker":
-        raise RunnerUnavailable("RUNNER_MODE must be docker or unavailable. Student code is never executed in the API process.")
+    if RUNNER_MODE not in {"docker", "judge0"}:
+        raise RunnerUnavailable("RUNNER_MODE must be docker, judge0, or unavailable. Student code is never executed in the API process.")
 
 
 def _harness(code: str, function_name: str, tests: list[dict]) -> str:
@@ -109,6 +109,13 @@ def execute(source: str, function_name: str, tests: list[dict]) -> dict:
             "duration_ms": 0,
         }
     _require_runner()
+    if RUNNER_MODE == "judge0":
+        from .judge0 import Judge0Error, execute_function
+
+        try:
+            return execute_function(source, function_name, tests, timeout_seconds=TIMEOUT, max_source_bytes=MAX_SOURCE_BYTES)
+        except Judge0Error as error:
+            raise RunnerUnavailable(str(error)) from error
     script = _harness(source, function_name, tests)
     started = time.perf_counter()
     folder = None
@@ -188,6 +195,13 @@ def execute_stdio(language: str, source: str, entry_point: str, tests: list[dict
     expected_entry = {"python": "main.py", "java": "Main.java", "c": "main.c"}[language]
     if entry_point != expected_entry:
         raise ValueError("The exercise has an unsupported entry point.")
+    if RUNNER_MODE == "judge0":
+        from .judge0 import Judge0Error, execute_stdio as judge0_execute_stdio
+
+        try:
+            return judge0_execute_stdio(language, source, tests, timeout_seconds=TIMEOUT, max_source_bytes=MAX_SOURCE_BYTES)
+        except Judge0Error as error:
+            raise RunnerUnavailable(str(error)) from error
     runner_image = {"python": RUNNER_IMAGE, "java": JAVA_RUNNER_IMAGE, "c": C_RUNNER_IMAGE}[language]
     started = time.perf_counter()
     with tempfile.TemporaryDirectory(prefix=f"codemind-{language}-") as folder:
