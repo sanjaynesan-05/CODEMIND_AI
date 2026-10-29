@@ -10,7 +10,6 @@ services:
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile.api
-    healthCheckPath: /api/health
     envVars:
       - key: APP_ENV
         value: production
@@ -20,8 +19,6 @@ services:
         fromDatabase:
           name: codematrix-db
           property: connectionString
-      - key: FRONTEND_ORIGINS
-        value: "*"
 
   - type: web
     name: codematrix-web
